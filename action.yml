@@ -1,0 +1,34 @@
+name: 'Upload Files to Website'
+description: 'A GitHub Action to upload files to a website using API'
+author: 'ZeroCat'
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
+inputs:
+  api_token:
+    description: 'API Token for website hosting service'
+    required: true
+  site_id:
+    description: 'Website ID for the target site'
+    required: true
+  api_base_url:
+    description: 'Base URL for the API service'
+    required: false
+    default: 'https://api.example.com'
+  source_dir:
+    description: 'Source directory containing files to upload'
+    required: false
+    default: './dist'
+outputs:
+  status:
+    description: 'Upload status (success, failed, cancelled)'
+  total_files:
+    description: 'Total number of files processed'
+  success_files:
+    description: 'Number of files uploaded successfully'
+  failed_files:
+    description: 'Number of files that failed to upload'
+  duration:
+    description: 'Upload duration in milliseconds'
+  upload_result:
+    description: 'Detailed upload result in JSON format'

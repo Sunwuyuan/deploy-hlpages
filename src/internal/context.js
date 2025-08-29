@@ -5,9 +5,9 @@ function getRequiredVars() {
   // 新的API和文件上传相关配置
   const apiToken = core.getInput('api_token', { required: true })
   const siteId = core.getInput('site_id', { required: true })
-  const apiBaseUrl = core.getInput('api_base_url') || 'https://api.example.com'
+  const apiBaseUrl = core.getInput('api_base_url') || 'http://localhost:3000'
   const sourceDir = core.getInput('source_dir') || './dist'
-  
+
   // 固定配置，简化使用
   const targetPath = '/'
   const timeout = 600000  // 10分钟

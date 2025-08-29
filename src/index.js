@@ -3,7 +3,7 @@
 // without the user having to do the tar process themselves.
 
 const core = require('@actions/core')
-const { getContext } = require('./internal/context')
+const getContext = require('./internal/context')
 const { FileUploader } = require('./internal/deployment')
 
 async function main() {

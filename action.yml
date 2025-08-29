@@ -14,7 +14,7 @@ inputs:
   api_base_url:
     description: 'Base URL for the API service'
     required: false
-    default: 'https://api.example.com'
+    default: 'http://localhost:3000'
   source_dir:
     description: 'Source directory containing files to upload'
     required: false

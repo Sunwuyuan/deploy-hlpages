@@ -15,11 +15,11 @@ const axios = require('axios')
  */
 async function listFiles({ apiToken, siteId, apiBaseUrl, path: dirPath = '' }) {
   const url = `${apiBaseUrl}/sites/${siteId}/files`
-  const params = dirPath ? { path: dirPath } : {}
-  
+  const params = dirPath !== undefined && dirPath !== null ? { path: dirPath } : {}
+
   try {
     core.info(`正在获取目录文件列表: ${dirPath || '根目录'}`)
-    
+
     const response = await axios.get(url, {
       headers: {
         'Authorization': `Bearer ${apiToken}`,
@@ -27,7 +27,7 @@ async function listFiles({ apiToken, siteId, apiBaseUrl, path: dirPath = '' }) {
       },
       params
     })
-    
+
     return response.data
   } catch (error) {
     core.error(`获取文件列表失败: ${error.message}`)
@@ -46,25 +46,25 @@ async function listFiles({ apiToken, siteId, apiBaseUrl, path: dirPath = '' }) {
  * @returns {Promise<Object>} 上传响应
  */
 async function uploadFile({ apiToken, siteId, apiBaseUrl, filePath, uploadPath = '' }) {
-  const url = `${apiBaseUrl}/sites/${siteId}/files`
-  
+  const url = `${apiBaseUrl}/sites/${siteId}/files?path=${uploadPath}`
+
   try {
     if (!fs.existsSync(filePath)) {
       throw new Error(`文件不存在: ${filePath}`)
     }
-    
+
     const fileName = path.basename(filePath)
     const fileStream = fs.createReadStream(filePath)
     const fileStats = fs.statSync(filePath)
-    
+
     core.info(`正在上传文件: ${fileName} (${fileStats.size} 字节) 到路径: ${uploadPath || '根目录'}`)
-    
+
     const formData = new FormData()
     formData.append('file', fileStream, fileName)
     if (uploadPath) {
       formData.append('path', uploadPath)
     }
-    
+
     const response = await axios.post(url, formData, {
       headers: {
         'Authorization': `Bearer ${apiToken}`,
@@ -73,7 +73,7 @@ async function uploadFile({ apiToken, siteId, apiBaseUrl, filePath, uploadPath =
       maxContentLength: Infinity,
       maxBodyLength: Infinity
     })
-    
+
     core.info(`文件上传成功: ${fileName}`)
     return response.data
   } catch (error) {
@@ -90,14 +90,14 @@ async function uploadFile({ apiToken, siteId, apiBaseUrl, filePath, uploadPath =
  */
 function getAllFiles(dirPath, basePath = dirPath) {
   const files = []
-  
+
   try {
     const items = fs.readdirSync(dirPath, { withFileTypes: true })
-    
+
     for (const item of items) {
       const fullPath = path.join(dirPath, item.name)
       const relativePath = path.relative(basePath, fullPath)
-      
+
       if (item.isDirectory()) {
         // 递归遍历子目录
         files.push(...getAllFiles(fullPath, basePath))
@@ -114,7 +114,7 @@ function getAllFiles(dirPath, basePath = dirPath) {
     core.error(`读取目录失败 ${dirPath}: ${error.message}`)
     throw error
   }
-  
+
   return files
 }
 
@@ -130,7 +130,7 @@ function getAllFiles(dirPath, basePath = dirPath) {
 async function uploadDirectory({ apiToken, siteId, apiBaseUrl, sourceDir }) {
   try {
     core.info(`开始上传目录: ${sourceDir}`)
-    
+
     const files = getAllFiles(sourceDir)
     const results = {
       total: files.length,
@@ -138,14 +138,14 @@ async function uploadDirectory({ apiToken, siteId, apiBaseUrl, sourceDir }) {
       failed: 0,
       errors: []
     }
-    
+
     core.info(`发现 ${files.length} 个文件需要上传`)
-    
+
     for (const file of files) {
       try {
         // 直接使用相对路径上传到根目录对应位置
-        const uploadPath = file.relativePath
-        
+        const uploadPath = path.dirname(file.relativePath)
+
         await uploadFile({
           apiToken,
           siteId,
@@ -153,7 +153,7 @@ async function uploadDirectory({ apiToken, siteId, apiBaseUrl, sourceDir }) {
           filePath: file.localPath,
           uploadPath
         })
-        
+
         results.success++
       } catch (error) {
         results.failed++
@@ -164,12 +164,12 @@ async function uploadDirectory({ apiToken, siteId, apiBaseUrl, sourceDir }) {
         core.warning(`跳过文件 ${file.relativePath}: ${error.message}`)
       }
     }
-    
+
     core.info(`上传完成: 成功 ${results.success}/${results.total} 个文件`)
     if (results.failed > 0) {
       core.warning(`失败 ${results.failed} 个文件`)
     }
-    
+
     return results
   } catch (error) {
     core.error(`批量上传失败: ${error.message}`)
@@ -188,14 +188,14 @@ async function uploadDirectory({ apiToken, siteId, apiBaseUrl, sourceDir }) {
 async function validateApiAccess({ apiToken, siteId, apiBaseUrl }) {
   try {
     core.info('验证API访问权限...')
-    
+
     await listFiles({ apiToken, siteId, apiBaseUrl })
-    
+
     core.info('API访问权限验证成功')
     return true
   } catch (error) {
     core.error(`API访问权限验证失败: ${error.message}`)
-    
+
     if (error.response) {
       const status = error.response.status
       if (status === 401) {
@@ -206,7 +206,7 @@ async function validateApiAccess({ apiToken, siteId, apiBaseUrl }) {
         throw new Error(`网站ID不存在: ${siteId}`)
       }
     }
-    
+
     throw error
   }
 }
